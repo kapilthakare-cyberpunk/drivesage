@@ -1,5 +1,5 @@
 const { ipcRenderer } = require('electron');
-const path = require('path'); // Added missing import for path
+const path = require('path');
 
 // App state management
 class AppState {
@@ -38,7 +38,7 @@ class AppState {
     updateSettings(newSettings) {
         this.settings = { ...this.settings, ...newSettings };
         this.saveSettings();
-        this.updateUI();
+        uiManager.updateUI();
     }
 }
 
@@ -52,54 +52,43 @@ class UIManager {
     }
 
     initializeElements() {
-        // Main sections
-        this.elements.dashboard = document.getElementById('dashboard');
-        this.elements.scanSection = document.getElementById('scan-section');
-        this.elements.analysisSection = document.getElementById('analysis-section');
-        this.elements.organizeSection = document.getElementById('organize-section');
-        this.elements.duplicatesSection = document.getElementById('duplicates-section');
-        this.elements.settingsSection = document.getElementById('settings-section');
+        const ids = [
+            'dashboard-section', 'scan-section', 'organize-section', 'duplicates-section', 'settings-section',
+            'quick-stats', 'dashboard-scan-btn', 'dashboard-organize-btn',
+            'drive-path', 'scan-btn', 'scan-progress', 'scan-loading', 'scan-status', 'analysis-results',
+            'folder-list', 'large-files-list', 'system-files-list', 'protected-files-list',
+            'organize-btn', 'dry-run-toggle', 'operations-list',
+            'duplicates-list', 'find-duplicates-btn',
+            'auto-backup-toggle', 'protected-patterns', 'save-settings-btn'
+        ];
+        ids.forEach(id => {
+            this.elements[this.camelCase(id)] = document.getElementById(id);
+        });
+        this.elements.notification = document.querySelector('.notification');
+    }
 
-        // Dashboard elements
-        this.elements.drivePathInput = document.getElementById('drive-path');
-        this.elements.scanButton = document.getElementById('scan-btn');
-        this.elements.quickStats = document.getElementById('quick-stats');
-        this.elements.recentActivity = document.getElementById('recent-activity');
-
-        // Analysis elements
-        this.elements.folderList = document.getElementById('folder-list');
-        this.elements.largeFilesList = document.getElementById('large-files-list');
-        this.elements.systemFilesList = document.getElementById('system-files-list');
-        this.elements.protectedFilesList = document.getElementById('protected-files-list');
-
-        // Organization elements
-        this.elements.organizeButton = document.getElementById('organize-btn');
-        this.elements.dryRunToggle = document.getElementById('dry-run-toggle');
-        this.elements.operationsList = document.getElementById('operations-list');
-
-        // Duplicates elements
-        this.elements.duplicatesList = document.getElementById('duplicates-list');
-        this.elements.findDuplicatesButton = document.getElementById('find-duplicates-btn');
-
-        // Settings elements
-        this.elements.autoBackupToggle = document.getElementById('auto-backup-toggle');
-        this.elements.protectedPatternsInput = document.getElementById('protected-patterns');
-        this.elements.saveSettingsButton = document.getElementById('save-settings-btn');
-
-        // Progress and status
-        this.elements.progressBar = document.getElementById('progress-bar');
-        this.elements.statusText = document.getElementById('status-text');
-        this.elements.loadingSpinner = document.getElementById('loading-spinner');
+    camelCase(kebabCaseString) {
+        return kebabCaseString.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
     }
 
     bindEvents() {
         // Navigation
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', (e) => {
-                this.showSection(e.target.dataset.section);
+                this.showSection(e.currentTarget.dataset.section);
             });
         });
 
+        // Dashboard buttons
+        this.elements.dashboardScanBtn.addEventListener('click', () => {
+            this.showNotification('Navigating to Scan section...', 'info');
+            this.showSection('scan');
+        });
+        this.elements.dashboardOrganizeBtn.addEventListener('click', () => {
+            this.showNotification('Navigating to Organize section...', 'info');
+            this.showSection('organize');
+        });
+        
         // Drive path selection
         this.elements.drivePathInput.addEventListener('change', (e) => {
             appState.currentDrive = e.target.value;
@@ -138,7 +127,6 @@ class UIManager {
         // Menu events
         ipcRenderer.on('menu-scan-drive', () => {
             this.showSection('scan');
-            this.startScan();
         });
 
         ipcRenderer.on('menu-open-settings', () => {
@@ -163,14 +151,12 @@ class UIManager {
 
     showSection(sectionName) {
         // Hide all sections
-        Object.values(this.elements).forEach(element => {
-            if (element && element.classList && element.classList.contains('section')) {
-                element.style.display = 'none';
-            }
+        document.querySelectorAll('.section').forEach(section => {
+            section.style.display = 'none';
         });
 
         // Show selected section
-        const targetSection = this.elements[`${sectionName}Section`];
+        const targetSection = document.getElementById(`${sectionName}-section`);
         if (targetSection) {
             targetSection.style.display = 'block';
         }
@@ -196,7 +182,7 @@ class UIManager {
 
     async startScan() {
         if (!appState.currentDrive) {
-            this.showError('Please select a drive path first');
+            this.showNotification('Please select a drive path first', 'error');
             return;
         }
 
@@ -213,13 +199,13 @@ class UIManager {
             if (result.success) {
                 appState.analysis = result.data;
                 this.displayAnalysis(result.data);
-                this.showSuccess('Drive analysis completed successfully!');
+                this.showNotification('Drive analysis completed successfully!', 'success');
                 this.showSection('analysis');
             } else {
-                this.showError(`Scan failed: ${result.error}`);
+                this.showNotification(`Scan failed: ${result.error}`, 'error');
             }
         } catch (error) {
-            this.showError(`Scan error: ${error.message}`);
+            this.showNotification(`Scan error: ${error.message}`, 'error');
         } finally {
             appState.isScanning = false;
             this.hideLoading();
@@ -242,13 +228,13 @@ class UIManager {
                 <p>Folders</p>
             </div>
             <div class="stat-card">
-                <h3>${analysis.folders.length}</h3>
-                <p>Top-level Folders</p>
+                <h3>${analysis.duplicates.length}</h3>
+                <p>Duplicates</p>
             </div>
         `;
 
         // Display folders
-        this.elements.folderList.innerHTML = analysis.folders.map(folder => `
+        this.elements.folderList.innerHTML = `<h3>Folders</h3>` + analysis.folders.map(folder => `
             <div class="folder-item">
                 <div class="folder-info">
                     <h4>${folder.name}</h4>
@@ -262,7 +248,7 @@ class UIManager {
         `).join('');
 
         // Display large files
-        this.elements.largeFilesList.innerHTML = analysis.largeFiles.map(file => `
+        this.elements.largeFilesList.innerHTML = `<h3>Large Files</h3>` + analysis.largeFiles.map(file => `
             <div class="file-item">
                 <div class="file-info">
                     <h4>${file.name}</h4>
@@ -276,7 +262,7 @@ class UIManager {
         `).join('');
 
         // Display system files
-        this.elements.systemFilesList.innerHTML = analysis.systemFiles.map(file => `
+        this.elements.systemFilesList.innerHTML = `<h3>System Files</h3>` + analysis.systemFiles.map(file => `
             <div class="file-item system-file">
                 <div class="file-info">
                     <h4>${file.name}</h4>
@@ -290,7 +276,7 @@ class UIManager {
         `).join('');
 
         // Display protected files
-        this.elements.protectedFilesList.innerHTML = analysis.protectedFiles.map(file => `
+        this.elements.protectedFilesList.innerHTML = `<h3>Protected Files</h3>` + analysis.protectedFiles.map(file => `
             <div class="file-item protected-file">
                 <div class="file-info">
                     <h4>${file.name}</h4>
@@ -306,7 +292,7 @@ class UIManager {
 
     async startOrganization() {
         if (!appState.analysis) {
-            this.showError('Please scan a drive first');
+            this.showNotification('Please scan a drive first', 'error');
             return;
         }
 
@@ -327,12 +313,12 @@ class UIManager {
 
             if (result.success) {
                 this.displayOrganizationResults(result.data);
-                this.showSuccess(`Organization completed! ${result.data.summary.successful} operations successful.`);
+                this.showNotification(`Organization completed! ${result.data.summary.successful} operations successful.`, 'success');
             } else {
-                this.showError(`Organization failed: ${result.error}`);
+                this.showNotification(`Organization failed: ${result.error}`, 'error');
             }
         } catch (error) {
-            this.showError(`Organization error: ${error.message}`);
+            this.showNotification(`Organization error: ${error.message}`, 'error');
         } finally {
             appState.isOrganizing = false;
             this.hideLoading();
@@ -434,7 +420,7 @@ class UIManager {
 
     async findDuplicates() {
         if (!appState.currentDrive) {
-            this.showError('Please select a drive path first');
+            this.showNotification('Please select a drive path first', 'error');
             return;
         }
 
@@ -445,12 +431,12 @@ class UIManager {
             
             if (result.success) {
                 this.displayDuplicates(result.data);
-                this.showSuccess(`Found ${result.data.length} duplicates!`);
+                this.showNotification(`Found ${result.data.length} duplicates!`, 'success');
             } else {
-                this.showError(`Duplicate search failed: ${result.error}`);
+                this.showNotification(`Duplicate search failed: ${result.error}`, 'error');
             }
         } catch (error) {
-            this.showError(`Duplicate search error: ${error.message}`);
+            this.showNotification(`Duplicate search error: ${error.message}`, 'error');
         } finally {
             this.hideLoading();
         }
@@ -482,7 +468,7 @@ class UIManager {
             protectedPatterns: patterns
         });
 
-        this.showSuccess('Settings saved successfully!');
+        this.showNotification('Settings saved successfully!', 'success');
     }
 
     // Utility methods
@@ -495,54 +481,51 @@ class UIManager {
     }
 
     showLoading(message, showProgress = false) {
-        this.elements.statusText.textContent = message;
-        this.elements.loadingSpinner.style.display = 'block';
-        this.elements.progressBar.style.display = showProgress ? 'block' : 'none';
+        this.elements.scanStatus.textContent = message;
+        this.elements.scanLoading.style.display = 'block';
+        if (showProgress) {
+            this.elements.scanProgress.style.width = '50%'; // Simulate progress
+        }
     }
 
     hideLoading() {
-        this.elements.loadingSpinner.style.display = 'none';
-        this.elements.progressBar.style.display = 'none';
-        this.elements.statusText.textContent = '';
-    }
-
-    showSuccess(message) {
-        this.showNotification(message, 'success');
-    }
-
-    showError(message) {
-        this.showNotification(message, 'error');
+        this.elements.scanLoading.style.display = 'none';
+        this.elements.scanProgress.style.width = '0%';
+        this.elements.scanStatus.textContent = '';
     }
 
     showNotification(message, type = 'info') {
-        const notification = document.createElement('div');
-        notification.className = `notification ${type}`;
-        notification.textContent = message;
-        
-        document.body.appendChild(notification);
+        this.elements.notification.textContent = message;
+        this.elements.notification.className = `notification ${type} show`;
         
         setTimeout(() => {
-            notification.classList.add('show');
-        }, 100);
-        
-        setTimeout(() => {
-            notification.classList.remove('show');
-            setTimeout(() => {
-                document.body.removeChild(notification);
-            }, 300);
+            this.elements.notification.classList.remove('show');
         }, 3000);
     }
 
-    // Action methods
-    organizeFolder(folderPath) {
-        // Implementation for organizing a specific folder
-        console.log('Organizing folder:', folderPath);
+    async organizeFolder(folderPath) {
+        if (confirm(`Are you sure you want to organize files in ${folderPath}?`)) {
+            this.showNotification(`Organizing folder: ${folderPath}`, 'info');
+            // Here you would typically call an IPC handler to trigger organization for a specific folder
+            // For now, it's a placeholder
+            console.log('Organizing folder:', folderPath);
+        }
     }
 
-    deleteFile(filePath) {
-        if (confirm('Are you sure you want to delete this file?')) {
-            // Implementation for deleting a file
-            console.log('Deleting file:', filePath);
+    async deleteFile(filePath) {
+        if (confirm(`Are you sure you want to delete ${filePath}? This action cannot be undone.`)) {
+            this.showNotification(`Deleting file: ${filePath}`, 'info');
+            try {
+                const result = await ipcRenderer.invoke('delete-file', filePath);
+                if (result.success) {
+                    this.showNotification(`Successfully deleted: ${filePath}`, 'success');
+                    // Optionally, re-scan or update UI to reflect deletion
+                } else {
+                    this.showNotification(`Failed to delete: ${filePath}. Error: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                this.showNotification(`Error deleting file: ${error.message}`, 'error');
+            }
         }
     }
 }
@@ -561,4 +544,4 @@ uiManager.updateUI();
 
 // Export for global access
 window.appState = appState;
-window.uiManager = uiManager; 
+window.uiManager = uiManager;

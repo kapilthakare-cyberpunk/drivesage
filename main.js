@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs-extra');
 const { google } = require('googleapis');
+const crypto = require('crypto');
 
 // App configuration
 const APP_CONFIG = {
@@ -249,7 +250,7 @@ class DriveAnalysisService {
                     } else {
                         // Simple hash based on filename and size for now
                         // In production, you might want to use content hashing
-                        const hash = `${item}_${stats.size}`;
+                        const hash = await this.calculateFileHash(itemPath);
                         
                         if (fileHashes.has(hash)) {
                             duplicates.push({
@@ -282,6 +283,22 @@ class DriveAnalysisService {
         const protectedPatterns = ['gemini', 'ai', 'assistant', 'code', 'project'];
         const lowerFilename = filename.toLowerCase();
         return protectedPatterns.some(pattern => lowerFilename.includes(pattern));
+    }
+
+    static calculateFileHash(filePath) {
+        return new Promise((resolve, reject) => {
+            const hash = crypto.createHash('sha256');
+            const stream = fs.createReadStream(filePath);
+            stream.on('data', (data) => {
+                hash.update(data);
+            });
+            stream.on('end', () => {
+                resolve(hash.digest('hex'));
+            });
+            stream.on('error', (err) => {
+                reject(err);
+            });
+        });
     }
 }
 
@@ -513,6 +530,17 @@ ipcMain.handle('find-duplicates', async (event, drivePath) => {
         return { success: true, data: analysis.duplicates };
     } catch (error) {
         Logger.error('IPC find-duplicates failed', error);
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('delete-file', async (event, filePath) => {
+    try {
+        await fs.remove(filePath);
+        Logger.info(`File deleted via IPC: ${filePath}`);
+        return { success: true };
+    } catch (error) {
+        Logger.error(`IPC delete-file failed for ${filePath}`, error);
         return { success: false, error: error.message };
     }
 });

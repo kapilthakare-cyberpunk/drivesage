@@ -4,165 +4,168 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DriveSage - Smart Google Drive Organization</title>
-    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/your-fontawesome-kit.js" crossorigin="anonymous"></script>
 </head>
 <body>
-    <div id="app">
-        <!-- Header -->
-        <header class="header">
-            <div class="header-left">
-                <h1 class="logo">🏠 DriveSage</h1>
-                <span class="tagline">Smart Google Drive Organization</span>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="app-title">DriveSage</h1>
+                <p class="app-subtitle">Smart Drive Organization</p>
             </div>
-            <div class="header-right">
-                <button class="btn btn-secondary" id="settingsBtn">⚙️ Settings</button>
-                <button class="btn btn-primary" id="scanBtn">🔍 Scan Drive</button>
-            </div>
-        </header>
-
-        <!-- Navigation -->
-        <nav class="nav">
-            <button class="nav-item active" data-tab="overview">📊 Overview</button>
-            <button class="nav-item" data-tab="analyze">🔍 Analyze</button>
-            <button class="nav-item" data-tab="organize">🗂️ Organize</button>
-            <button class="nav-item" data-tab="duplicates">🔄 Duplicates</button>
-        </nav>
+            <ul class="nav-menu">
+                <li class="nav-item active" data-section="dashboard">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </li>
+                <li class="nav-item" data-section="scan">
+                    <i class="fas fa-search"></i>
+                    <span>Scan</span>
+                </li>
+                <li class="nav-item" data-section="organize">
+                    <i class="fas fa-folder-open"></i>
+                    <span>Organize</span>
+                </li>
+                <li class="nav-item" data-section="duplicates">
+                    <i class="fas fa-copy"></i>
+                    <span>Duplicates</span>
+                </li>
+                <li class="nav-item" data-section="settings">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </li>
+            </ul>
+        </aside>
 
         <!-- Main Content -->
-        <main class="main">
-            <!-- Overview Tab -->
-            <div class="tab-content active" id="overview">
-                <div class="dashboard">
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <h3>Total Size</h3>
-                            <p class="stat-value" id="totalSize">--</p>
+        <main class="main-content">
+            <!-- Dashboard Section -->
+            <section id="dashboard-section" class="section">
+                <div class="section-header">
+                    <h2 class="section-title">Dashboard</h2>
+                    <p class="section-subtitle">An overview of your Google Drive</p>
+                </div>
+                <div class="stats-grid" id="quick-stats">
+                    <!-- Stats will be loaded here -->
+                </div>
+                <div class="dashboard-grid">
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <div class="card-icon scan">
+                                <i class="fas fa-search"></i>
+                            </div>
+                            <h3 class="card-title">Scan Drive</h3>
                         </div>
-                        <div class="stat-card">
-                            <h3>Files</h3>
-                            <p class="stat-value" id="fileCount">--</p>
-                        </div>
-                        <div class="stat-card">
-                            <h3>Folders</h3>
-                            <p class="stat-value" id="folderCount">--</p>
-                        </div>
-                        <div class="stat-card">
-                            <h3>Duplicates</h3>
-                            <p class="stat-value" id="duplicateCount">--</p>
-                        </div>
+                        <p class="card-description">Analyze your drive for insights and recommendations.</p>
+                        <button class="btn btn-primary" id="dashboard-scan-btn">Start Scan</button>
                     </div>
-
-                    <div class="chart-container">
-                        <h3>Storage by Folder</h3>
-                        <div class="pie-chart" id="storageChart">
-                            <!-- Chart will be rendered here -->
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <div class="card-icon organize">
+                                <i class="fas fa-folder-open"></i>
+                            </div>
+                            <h3 class="card-title">Organize Files</h3>
                         </div>
-                    </div>
-
-                    <div class="quick-actions">
-                        <h3>Quick Actions</h3>
-                        <div class="action-buttons">
-                            <button class="btn btn-action" id="findDuplicatesBtn">🔄 Find Duplicates</button>
-                            <button class="btn btn-action" id="cleanSystemBtn">🧹 Clean System Files</button>
-                            <button class="btn btn-action" id="organizeRootBtn">📁 Organize Root</button>
-                            <button class="btn btn-action" id="safetyCheckBtn">🛡️ Safety Check</button>
-                        </div>
+                        <p class="card-description">Automatically sort and clean up your files.</p>
+                        <button class="btn btn-secondary" id="dashboard-organize-btn">Organize Now</button>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <!-- Analyze Tab -->
-            <div class="tab-content" id="analyze">
-                <div class="analyze-panel">
-                    <h2>Drive Analysis</h2>
-                    <div class="analysis-controls">
-                        <input type="text" id="drivePath" placeholder="Google Drive path..." class="input">
-                        <button class="btn btn-primary" id="analyzeBtn">Start Analysis</button>
-                    </div>
-                    
-                    <div class="analysis-results" id="analysisResults">
-                        <!-- Analysis results will appear here -->
+            <!-- Scan Section -->
+            <section id="scan-section" class="section" style="display: none;">
+                <div class="section-header">
+                    <h2 class="section-title">Scan Drive</h2>
+                    <p class="section-subtitle">Analyze your drive's structure and contents</p>
+                </div>
+                <div class="form-group">
+                    <label for="drive-path" class="form-label">Google Drive Path</label>
+                    <input type="text" id="drive-path" class="form-input" placeholder="Enter your Google Drive path...">
+                </div>
+                <button class="btn btn-primary" id="scan-btn">
+                    <i class="fas fa-search"></i>
+                    Start Scan
+                </button>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="scan-progress"></div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Organize Tab -->
-            <div class="tab-content" id="organize">
-                <div class="organize-panel">
-                    <h2>File Organization</h2>
-                    <div class="organization-controls">
-                        <label class="checkbox">
-                            <input type="checkbox" id="dryRunCheck" checked>
-                            <span>Dry Run Mode (Preview changes)</span>
-                        </label>
-                        <button class="btn btn-primary" id="organizeBtn">Organize Files</button>
-                    </div>
-                    
-                    <div class="file-tree" id="fileTree">
-                        <!-- File tree will be rendered here -->
-                    </div>
-                    
-                    <div class="operation-log" id="operationLog">
-                        <!-- Operation results will appear here -->
-                    </div>
+                <div class="loading-spinner" id="scan-loading">
+                    <div class="spinner"></div>
+                    <p class="status-text" id="scan-status"></p>
                 </div>
-            </div>
-
-            <!-- Duplicates Tab -->
-            <div class="tab-content" id="duplicates">
-                <div class="duplicates-panel">
-                    <h2>Duplicate Detection</h2>
-                    <div class="duplicate-controls">
-                        <button class="btn btn-primary" id="scanDuplicatesBtn">Scan for Duplicates</button>
-                        <button class="btn btn-secondary" id="selectAllDuplicatesBtn">Select All</button>
-                        <button class="btn btn-danger" id="deleteSelectedBtn">Delete Selected</button>
-                    </div>
-                    
-                    <div class="duplicates-list" id="duplicatesList">
-                        <!-- Duplicate files will be listed here -->
-                    </div>
+                <div id="analysis-results">
+                    <div id="folder-list"></div>
+                    <div id="large-files-list"></div>
+                    <div id="system-files-list"></div>
+                    <div id="protected-files-list"></div>
                 </div>
-            </div>
+            </section>
+
+            <!-- Organize Section -->
+            <section id="organize-section" class="section" style="display: none;">
+                <div class="section-header">
+                    <h2 class="section-title">Organize Files</h2>
+                    <p class="section-subtitle">Clean up and structure your drive</p>
+                </div>
+                <div class="form-group">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="dry-run-toggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="form-label">Dry Run Mode (Preview changes)</span>
+                </div>
+                <button class="btn btn-primary" id="organize-btn">
+                    <i class="fas fa-magic"></i>
+                    Organize Files
+                </button>
+                <div id="operations-list"></div>
+            </section>
+
+            <!-- Duplicates Section -->
+            <section id="duplicates-section" class="section" style="display: none;">
+                <div class="section-header">
+                    <h2 class="section-title">Find Duplicates</h2>
+                    <p class="section-subtitle">Locate and remove duplicate files</p>
+                </div>
+                <button class="btn btn-primary" id="find-duplicates-btn">
+                    <i class="fas fa-copy"></i>
+                    Find Duplicates
+                </button>
+                <div id="duplicates-list"></div>
+            </section>
+
+            <!-- Settings Section -->
+            <section id="settings-section" class="section" style="display: none;">
+                <div class="section-header">
+                    <h2 class="section-title">Settings</h2>
+                    <p class="section-subtitle">Customize DriveSage to your needs</p>
+                </div>
+                <div class="form-group">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="auto-backup-toggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="form-label">Auto Backup</span>
+                </div>
+                <div class="form-group">
+                    <label for="protected-patterns" class="form-label">Protected File Patterns</label>
+                    <input type="text" id="protected-patterns" class="form-input" placeholder="e.g., gemini, ai, project">
+                </div>
+                <button class="btn btn-primary" id="save-settings-btn">
+                    <i class="fas fa-save"></i>
+                    Save Settings
+                </button>
+            </section>
         </main>
-
-        <!-- Progress Modal -->
-        <div class="modal" id="progressModal">
-            <div class="modal-content">
-                <h3>Processing...</h3>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill"></div>
-                </div>
-                <p id="progressText">Analyzing drive structure...</p>
-            </div>
-        </div>
-
-        <!-- Settings Modal -->
-        <div class="modal" id="settingsModal">
-            <div class="modal-content">
-                <h3>Settings</h3>
-                <div class="settings-section">
-                    <h4>Safety Settings</h4>
-                    <label class="checkbox">
-                        <input type="checkbox" id="protectGeminiFiles" checked>
-                        <span>Protect Gemini/AI related files</span>
-                    </label>
-                    <label class="checkbox">
-                        <input type="checkbox" id="confirmDeletions" checked>
-                        <span>Confirm before deleting files</span>
-                    </label>
-                </div>
-                <div class="settings-section">
-                    <h4>Analysis Settings</h4>
-                    <label>Large file threshold (MB):</label>
-                    <input type="number" id="largeFileThreshold" value="100" class="input">
-                </div>
-                <button class="btn btn-primary" id="saveSettingsBtn">Save Settings</button>
-                <button class="btn btn-secondary" id="closeSettingsBtn">Close</button>
-            </div>
-        </div>
     </div>
 
-    <script src="scripts/renderer.js"></script>
+    <div class="notification"></div>
+
+    <script src="renderer.js"></script>
 </body>
-</html> 
+</html>
